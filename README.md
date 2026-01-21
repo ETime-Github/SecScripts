@@ -10,6 +10,7 @@ Protocol 2 # 仅支持 SSH v2（v1 存在设计缺陷，已被淘汰）
 Port 23456 # 自定义端口
 PermitEmptyPasswords no # 不允许空密码账号登录（默认no不允许，需确认）
 PermitRootLogin no # 不允许root远程登录
+UsePAM yes # 启用PAM
 PubkeyAuthentication yes # 启用密钥认证
 PasswordAuthentication yes # 启用密码认证
 MaxAuthTries 3  # 最多允许3次密码/密钥尝试(不含密钥passphrase，因为是客户端侧认证)，超过则断开连接
