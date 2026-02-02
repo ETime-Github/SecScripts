@@ -1,6 +1,6 @@
 #!/bin/bash
-#2026年1月20日更新
-#作者：https://github.com/ETime-Github
+#更新日期：2026年2月2日
+#更新地址：https://github.com/ETime-Github/SecScripts
 #--------------------
 #     root权限与备份
 #--------------------
@@ -66,13 +66,13 @@ backup_config || exit 1
 
 # 通过 PAM 识别 Linux 发行版系列
 detect_by_pam() {
+    local os_type="unknown"
     if [ -f /etc/pam.d/system-auth ] || [ -f /etc/pam.d/password-auth ]; then
-        printf "redhat"
+        os_type="redhat"
     elif [ -f /etc/pam.d/common-auth ] || [ -f /etc/pam.d/common-password ]; then
-        printf "debian"
-    else
-        printf "unknown"
+        os_type="debian"
     fi
+    printf "%s" "$os_type"
 }
 family=$(detect_by_pam)
 
@@ -88,25 +88,25 @@ check_global_config() {
     # 检查 /etc/profile
     if [ -f "/etc/profile" ]; then
         printf "#-----/etc/profile-----\n" >> "$MD_FILE"
-        grep -E -v '^$|^#' /etc/profile | grep -C 5 --color=never "$keyword" >> "$MD_FILE" 2>&1
+        grep -E -v '^$|^#' /etc/profile | grep -C 3 "$keyword" >> "$MD_FILE" 2>&1
     fi
 
     # 检查 /etc/profile.d/ 目录
     if [ -d "/etc/profile.d" ]; then
         printf "\n#-----/etc/profile.d/*-----\n" >> "$MD_FILE"
-        grep -E -v '^$|^#' -r /etc/profile.d/ 2>/dev/null | grep -C 5 --color=never "$keyword" >> "$MD_FILE" 2>&1
+        grep -E -v '^$|^#' -r /etc/profile.d/ 2>/dev/null | grep -C 3 "$keyword" >> "$MD_FILE" 2>&1
     fi
 
     # 根据系统系列检查不同的 bashrc
     if [ "$family" = "redhat" ]; then
         if [ -f "/etc/bashrc" ]; then
             printf "\n#-----/etc/bashrc-----\n" >> "$MD_FILE"
-            grep -E -v '^$|^#' /etc/bashrc | grep -C 5 --color=never "$keyword" >> "$MD_FILE" 2>&1
+            grep -E -v '^$|^#' /etc/bashrc | grep -C 3 "$keyword" >> "$MD_FILE" 2>&1
         fi
     elif [ "$family" = "debian" ]; then
         if [ -f "/etc/bash.bashrc" ]; then
             printf "\n#-----/etc/bash.bashrc-----\n" >> "$MD_FILE"
-            grep -E -v '^$|^#' /etc/bash.bashrc | grep -C 5 --color=never "$keyword" >> "$MD_FILE" 2>&1
+            grep -E -v '^$|^#' /etc/bash.bashrc | grep -C 3 "$keyword" >> "$MD_FILE" 2>&1
         fi
     fi
     
@@ -129,18 +129,18 @@ check_user_config() {
         # 检查 .bash_profile
         if [ -f "$user_home/.bash_profile" ]; then
             printf "#-----%s/.bash_profile-----\n" "$user_home" >> "$MD_FILE"
-            grep -E -v '^$|^#' "$user_home/.bash_profile" | grep -C 5 --color=never "$keyword" >> "$MD_FILE" 2>&1
+            grep -E -v '^$|^#' "$user_home/.bash_profile" | grep -C 5 "$keyword" >> "$MD_FILE" 2>&1
         fi
 
         # 检查 .profile
         if [ -f "$user_home/.profile" ]; then
             printf "#-----%s/.profile-----\n" "$user_home" >> "$MD_FILE"
-            grep -E -v '^$|^#' "$user_home/.profile" | grep -C 5 --color=never "$keyword" >> "$MD_FILE" 2>&1
+            grep -E -v '^$|^#' "$user_home/.profile" | grep -C 5 "$keyword" >> "$MD_FILE" 2>&1
         fi
         # 检查 .bashrc
         if [ -f "$user_home/.bashrc" ]; then
             printf "#-----%s/.bashrc-----\n" "$user_home" >> "$MD_FILE"
-            grep -E -v '^$|^#' "$user_home/.bashrc" | grep -C 5 --color=never "$keyword" >> "$MD_FILE" 2>&1
+            grep -E -v '^$|^#' "$user_home/.bashrc" | grep -C 5 "$keyword" >> "$MD_FILE" 2>&1
         fi
         
         printf "\n" >> "$MD_FILE"
@@ -317,11 +317,11 @@ append_text_to_md "> \`grep -v '^#' /etc/pam.d/passwd | grep -E 'pam_cracklib|pa
 append_code_to_md "" "grep -v '^#' /etc/pam.d/passwd | grep -E 'pam_cracklib|pam_pwquality|include|substack'"
 
 if [ "$family" = "redhat" ]; then
-    append_text_to_md "> \`grep -E 'pam_cracklib|pam_pwquality' /etc/pam.d/*-auth\` #RedHat系查看是否使用密码复杂度模块？密码长度大于等于8位，每种符号至少1个(值-1)符合。"
-    append_code_to_md "" "grep -E 'pam_cracklib|pam_pwquality' /etc/pam.d/*-auth"
+    append_text_to_md "> \`grep -v '^#' /etc/pam.d/*-auth | grep -E 'pam_cracklib|pam_pwquality'\` #RedHat系查看是否使用密码复杂度模块？密码长度大于等于8位，每种符号至少1个(值-1)符合。"
+    append_code_to_md "" "grep -v '^#' /etc/pam.d/*-auth | grep -E 'pam_cracklib|pam_pwquality'"
 elif [ "$family" = "debian" ]; then
-    append_text_to_md "> \`grep -E 'pam_cracklib|pam_pwquality' /etc/pam.d/common-*\` #Debian系查看是否使用密码复杂度模块？密码长度大于等于8位，每种符号至少1个(值-1)符合。"
-    append_code_to_md "" "grep -E 'pam_cracklib|pam_pwquality' /etc/pam.d/common-*"
+    append_text_to_md "> \`grep -v '^#' /etc/pam.d/common-* | grep -E 'pam_cracklib|pam_pwquality'\` #Debian系查看是否使用密码复杂度模块？密码长度大于等于8位，每种符号至少1个(值-1)符合。"
+    append_code_to_md "" "grep -v '^#' /etc/pam.d/common-* | grep -E 'pam_cracklib|pam_pwquality'"
 else
     printf "[ERROR] pam识别出Linux为%s系列，无法检查密码复杂度要求，请手动检查。\n" "$family"
 fi
@@ -345,27 +345,27 @@ append_code_to_md "" "grep -v '^#' /etc/pam.d/sshd | grep -E 'pam_tally2|pam_fai
 if [ -f "/etc/pam.d/lightdm" ]; then
     append_text_to_md "> \`grep -v '^#' /etc/pam.d/lightdm | grep -E 'pam_tally2|pam_faillock|include|substack'\` #**图形登录失败**处理，先看这个文件include或substack哪个文件，再看下方相应文件有无使用相关模块。或者直接配置在这个文件也行。"
     append_code_to_md "" "grep -v '^#' /etc/pam.d/lightdm | grep -E 'pam_tally2|pam_faillock|include|substack'"
-elif [ -f "/etc/pam.d/gdm" ]; then
-    append_text_to_md "> \`grep -v '^#' /etc/pam.d/gdm | grep -E 'pam_tally2|pam_faillock|include|substack'\` #**图形登录失败**处理，先看这个文件include或substack哪个文件，再看下方相应文件有无使用相关模块。或者直接配置在这个文件也行。"
-    append_code_to_md "" "grep -v '^#' /etc/pam.d/gdm | grep -E 'pam_tally2|pam_faillock|include|substack'"
+elif [ -f "/etc/pam.d/gdm-password" ]; then
+    append_text_to_md "> \`grep -v '^#' /etc/pam.d/gdm-password | grep -E 'pam_tally2|pam_faillock|include|substack'\` #**图形登录失败**处理，先看这个文件include或substack哪个文件，再看下方相应文件有无使用相关模块。或者直接配置在这个文件也行。"
+    append_code_to_md "" "grep -v '^#' /etc/pam.d/gdm-password | grep -E 'pam_tally2|pam_faillock|include|substack'"
 else
-    printf "[ERROR] 不是使用lightdm或gdm桌面环境，无法检查【图形登录失败】处理，请手动检查。\n"
+    printf "[ERROR] 没有或不是使用lightdm/gdm桌面管理，无法检查【图形登录失败】处理，请手动检查。\n"
 fi
 
 if [ "$family" = "redhat" ]; then
-    append_text_to_md "> \`grep -E 'pam_tally2|pam_faillock' /etc/pam.d/*-auth\` #RedHat系查看是否使用登录失败处理模块？登录失败小于等于10次，锁定大于等于5分钟（值大于等于300）符合。"
-    append_code_to_md "" "grep -E 'pam_tally2|pam_faillock' /etc/pam.d/*-auth"
+    append_text_to_md "> \`grep -v '^#' /etc/pam.d/*-auth | grep -E 'pam_tally2|pam_faillock'\` #RedHat系查看是否使用登录失败处理模块？登录失败小于等于10次，锁定大于等于5分钟（值大于等于300）符合。"
+    append_code_to_md "" "grep -v '^#' /etc/pam.d/*-auth | grep -E 'pam_tally2|pam_faillock'"
 elif [ "$family" = "debian" ]; then
-    append_text_to_md "> \`grep -E 'pam_tally2|pam_faillock' /etc/pam.d/common-*\` #Debian系查看是否使用登录失败处理模块？登录失败小于等于10次，锁定大于等于5分钟（值大于等于300）符合。"
-    append_code_to_md "" "grep -E 'pam_tally2|pam_faillock' /etc/pam.d/common-*"
+    append_text_to_md "> \`grep -v '^#' /etc/pam.d/common-* | grep -E 'pam_tally2|pam_faillock'\` #Debian系查看是否使用登录失败处理模块？登录失败小于等于10次，锁定大于等于5分钟（值大于等于300）符合。"
+    append_code_to_md "" "grep -v '^#' /etc/pam.d/common-* | grep -E 'pam_tally2|pam_faillock'"
 else
     printf "> [ERROR] pam识别出Linux为%s系列，无法检查【登录失败】处理，请手动检查。\n" "$family"
 fi
 
-append_text_to_md "> \`grep -E -v '^$|^#' /etc/profile /etc/profile.d/* /etc/bashrc /etc/bash.bashrc | grep -C 5 TMOUT\` #全局配置，要有export才生效。登录超时自动退出非监控或投屏建议小于等于10分钟（值小于等于600）符合。"
+append_text_to_md "> \`grep -E -v '^$|^#' /etc/profile /etc/profile.d/* /etc/bashrc /etc/bash.bashrc | grep -C 3 TMOUT\` #全局配置，要有export才生效。登录超时自动退出非监控或投屏建议小于等于10分钟（值小于等于600）符合。"
 check_global_config 'TMOUT'
 
-append_text_to_md "> \`grep -E -v '^$|^#' ~/.bash_profile ~/.profile ~/.bashrc | grep -C 5 TMOUT\` #用户配置，要有export才生效。"
+append_text_to_md "> \`grep -E -v '^$|^#' ~/.bash_profile ~/.profile ~/.bashrc | grep -C 3 TMOUT\` #用户配置，要有export才生效。"
 check_user_config 'TMOUT'
 
 append_text_to_md "> **后加载的配置覆盖先加载，除非有变量、参数、脚本内容控制**\n> 登录shell：\`ssh远程登录\`，\`本地终端登录\`，\`bash -l / bash --login\`，\`su - / su -l /su --login\`，\`sudo -i / sudo --login\`\n> 加载顺序：1. ==/etc/profile== (会遍历调用 ==/etc/profile.d/\*.sh== ) → 2.按顺序加载第一个存在的( ==~/.bash_profile== → ==~/.bash_login== → ==~/.profile== ) → 3.调用 ==~/.bashrc== → 4.调用 ==/etc/bashrc== (RedHat系)或 ==/etc/bash.bashrc== (Debian系)\n>\n> 非登录shell：\`图形界面终端\`，\`bash\`，\`su\`，\`sudo -s / sudo --shell\`\n> 加载顺序：1. ==~/.bashrc== → 2. ==/etc/bashrc== (RedHat系)或 ==/etc/bash.bashrc==(Debian系)\n>\n> ***以下是生效配置（可能与实际交互有区别）仅供参考***"
@@ -426,8 +426,8 @@ done
 printf "\`\`\`\n" >> "$MD_FILE"
 
 #--------------------
-append_text_to_md "## 4. 应授予管理用户所需的最小权限，实现管理用户的权限分离。" "> \`grep -E -v '^$|^#' /etc/sudoers\` #查看用户权限划分是否配置三权分立？系统管理员、用户管理员、日志管理员，有则符合。"
-append_code_to_md "" "grep -E -v '^$|^#' /etc/sudoers"
+append_text_to_md "## 4. 应授予管理用户所需的最小权限，实现管理用户的权限分离。" "> \`grep -E -v '^$|^#' -r /etc/sudoers /etc/sudoers.d\` #查看用户权限划分是否配置三权分立？系统管理员、用户管理员、日志管理员，有则符合。"
+append_code_to_md "-----/etc/sudoers-----" "grep -E -v '^$|^#' /etc/sudoers" "-----/etc/sudoers.d/-----" "grep -E -v '^$|^#' -r /etc/sudoers.d/ 2>/dev/null"
 
 append_text_to_md "> \`id 用户名\` #查看非/sbin/nologin、非/bin/false、非shutdown、sync、halt账户所属组，询问各组作用。检查账户是否加入root、sudo、wheel等sudoers文件有root权限的组。"
 printf "\n\`\`\`shell\n" >> "$MD_FILE"
@@ -438,10 +438,10 @@ for user in $users; do
 done
 printf "\`\`\`\n" >> "$MD_FILE"
 
-append_text_to_md "> \`grep -E -v '^$|^#' /etc/profile /etc/profile.d/* /etc/bashrc /etc/bash.bashrc | grep -C 5 umask\` #全局配置，要有export才生效。默认情况下：文件最大权限为 666（rw-rw-rw-），目录为 777（rwxrwxrwx），实际权限 = 最大权限 - umask。\n> 二级系统 0022 符合，即所有者全部权限、所属组读写、其他人无。推荐 0027。\n> 三级系统 0027 符合，即所有者全部权限、所属组读写、其他人无。推荐 0077。\n> 四级系统 0077 符合，即所有者全部权限、所属组无、其他人无）。"
+append_text_to_md "> \`grep -E -v '^$|^#' /etc/profile /etc/profile.d/* /etc/bashrc /etc/bash.bashrc | grep -C 3 umask\` #全局配置，要有export才生效。默认情况下：文件最大权限为 666（rw-rw-rw-），目录为 777（rwxrwxrwx），实际权限 = 最大权限 - umask。\n> 二级系统 0022 符合，即所有者全部权限、所属组读写、其他人无。推荐 0027。\n> 三级系统 0027 符合，即所有者全部权限、所属组读写、其他人无。推荐 0077。\n> 四级系统 0077 符合，即所有者全部权限、所属组无、其他人无）。"
 check_global_config 'umask'
 
-append_text_to_md "> \`grep -E -v '^$|^#' ~/.bash_profile ~/.profile ~/.bashrc | grep -C 5 umask\` #用户配置，要有export才生效。"
+append_text_to_md "> \`grep -E -v '^$|^#' ~/.bash_profile ~/.profile ~/.bashrc | grep -C 3 umask\` #用户配置，要有export才生效。"
 check_user_config 'umask'
 
 append_text_to_md "> **后加载的配置覆盖先加载，除非有变量、参数、脚本内容控制**\n> 登录shell：\`ssh远程登录\`，\`本地终端登录\`，\`bash -l / bash --login\`，\`su - / su -l /su --login\`，\`sudo -i / sudo --login\`\n> 加载顺序：1. ==/etc/profile== (会遍历调用 ==/etc/profile.d/\*.sh== ) → 2.按顺序加载第一个存在的( ==~/.bash_profile== → ==~/.bash_login== → ==~/.profile== ) → 3.调用 ==~/.bashrc== → 4.调用 ==/etc/bashrc== (RedHat系)或 ==/etc/bash.bashrc== (Debian系)\n>\n> 非登录shell：\`图形界面终端\`，\`bash\`，\`su\`，\`sudo -s / sudo --shell\`\n> 加载顺序：1. ==~/.bashrc== → 2. ==/etc/bashrc== (RedHat系)或 ==/etc/bash.bashrc==(Debian系)\n>\n> ***以下是生效配置（可能与实际交互有区别）仅供参考***"
@@ -559,10 +559,10 @@ append_code_to_md "-----hosts.allow-----" "grep -E -v '^$|^#' /etc/hosts.allow" 
 append_text_to_md "## 4. 应能发现可能存在的已知漏洞，并在经过充分测试评估后，及时修补漏洞。" "> 检查上方软件列表，最近6个月是否更新。可以使用能以版本匹配漏洞的漏洞扫描器做漏扫。" "> \`uname -r\` #查看内核版本，是否使用已停止技术支持的版本？\n> \`cat /etc/*release\` #查看操作系统版本，是否使用已停止技术支持的版本？"
 append_code_to_md "" "uname -r" "-----" "cat /etc/*release"
 
-append_text_to_md "> \`grep -E -v '^$|^#' /etc/profile /etc/profile.d/* /etc/bashrc /etc/bash.bashrc | grep -C 5 HISTSIZE\` #全局配置，要有export才生效。建议小于等于10条。"
+append_text_to_md "> \`grep -E -v '^$|^#' /etc/profile /etc/profile.d/* /etc/bashrc /etc/bash.bashrc | grep -C 3 HISTSIZE\` #全局配置，要有export才生效。建议小于等于10条。"
 check_global_config 'HISTSIZE'
 
-append_text_to_md "> \`grep -E -v '^$|^#' ~/.bash_profile ~/.profile ~/.bashrc | grep -C 5 HISTSIZE\` #用户配置，要有export才生效。"
+append_text_to_md "> \`grep -E -v '^$|^#' ~/.bash_profile ~/.profile ~/.bashrc | grep -C 3 HISTSIZE\` #用户配置，要有export才生效。"
 check_user_config 'HISTSIZE'
 
 append_text_to_md "> **后加载的配置覆盖先加载，除非有变量、参数、脚本内容控制**\n> 登录shell：\`ssh远程登录\`，\`本地终端登录\`，\`bash -l / bash --login\`，\`su - / su -l /su --login\`，\`sudo -i / sudo --login\`\n> 加载顺序：1. ==/etc/profile== (会遍历调用 ==/etc/profile.d/\*.sh== ) → 2.按顺序加载第一个存在的( ==~/.bash_profile== → ==~/.bash_login== → ==~/.profile== ) → 3.调用 ==~/.bashrc== → 4.调用 ==/etc/bashrc== (RedHat系)或 ==/etc/bash.bashrc== (Debian系)\n>\n> 非登录shell：\`图形界面终端\`，\`bash\`，\`su\`，\`sudo -s / sudo --shell\`\n> 加载顺序：1. ==~/.bashrc== → 2. ==/etc/bashrc== (RedHat系)或 ==/etc/bash.bashrc==(Debian系)\n>\n> ***以下是生效配置（可能与实际交互有区别）仅供参考***"
@@ -606,21 +606,21 @@ printf "[INFO] 5/6恶意代码部分收集完成。\n"
 #     6/6可信验证
 #--------------------
 append_text_to_md "# 可信验证" "## 1. 可基于可信根对计算设备的系统引导程序、系统程序、重要配置参数和应用程序等进行可信验证，并在检测到其可信性受到破坏后进行报警，并将验证结果形成审计记录送至安全管理中心。" "> TPM国际，TCM国内。询问是否安装使用可信客户端或其他软硬件？"
-append_code_to_md "" "dmesg | grep -i -E 'tpm|tcm|可信密码模块'"
+append_code_to_md "" "dmesg | grep -i -E 'tpm|tcm|可信'"
 
 printf "[INFO] 6/6可信验证部分收集完成。\n"
 
 #--------------------
 #     结束
 #--------------------
-printf "[INFO] 全部收集完成。\n"
+printf "[INFO] 全部收集完成。"
 printf "\n----------\n"
 
 if command -v sz > /dev/null 2>&1; then
     read -p "[？] 检测到 sz 工具，是否尝试下载记录文件到本地? (y/n): " download_choice
     if [[ "$download_choice" == "y" || "$download_choice" == "Y" ]]; then
         printf "[！] 下载中……\n"
-        sz "$MD_FILE"
+        sz -be "$MD_FILE"
         read -p "[？] 下载完成。是否删除生成的记录文件 ($MD_FILE)? (y/n): " rm_md_choice
         if [[ "$rm_md_choice" == "y" || "$rm_md_choice" == "Y" ]]; then
             rm -f "$MD_FILE"
